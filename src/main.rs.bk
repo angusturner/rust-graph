@@ -1,0 +1,22 @@
+fn main() {}
+
+
+// each node is a vector of references to the adjacent edges
+struct Node<'a, Edge: 'a> {
+    neighbors: Vec<&'a Edge>,
+}
+
+// each edge contains a weight and references to the two end nodes
+struct Edge<'a, T, Node: 'a> {
+    weight: T,
+    endpoints: (&'a Node, &'a Node),
+}
+
+struct Graph<'a, T, E: 'a, N: 'a> {
+    nodes: Vec<Node<'a, E>>,
+    edges: Vec<Edge<'a, T, N>>,
+}
+
+impl<'a, T, E, N> Graph<'a, T, E, N> {
+
+}
