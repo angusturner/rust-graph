@@ -1,49 +1,89 @@
-fn main() {}
+use std::io;
+use std::rc::Rc;
+use std::cell::RefCell;
+use std::fmt;
 
+fn main() {
+    // initialise a dummy graph
+    let mut graph = Graph::new();
+    graph.add_node("a");
+    graph.add_node("b");
+    graph.add_edge(0, 1);
+    graph.add_node("c");
+    graph.add_node("d");
+    graph.add_edge(2, 3);
 
-// each node is a vector of references to the adjacent nodes
+    // print it
+    println!("{:?}", graph);
+}
+
+// alias the reference counted node pointer (makes things cleaner)
+type NodeRef<'a> = Rc<RefCell<Node<'a>>>;
+
+// each node contains a vector of references to the adjacent nodes
 struct Node<'a> {
-    neighbors: Vec<&'a Node<'a>>,
+    name: &'a str,
+    adjacent: Vec<NodeRef<'a>>,
 }
 
 impl<'a> Node<'a> {
-    pub fn add_neighbor(&'a mut self, node: &'a Node<'a>) {
-        self.neighbors.push(node);
+    // return a reference counted pointer to a new node
+    pub fn new(name: &'a str) -> NodeRef<'a> {
+        Rc::new(RefCell::new(Node {
+            name: name,
+            adjacent: Vec::new(),
+        }))
+    }
+
+    // add an adjacent node
+    pub fn add_adjacent(&mut self, neighbor: &NodeRef<'a>) {
+        self.adjacent.push(neighbor.clone());
     }
 }
 
 // each edge contains a weight and references to the two end nodes
-struct Edge<'a, T: 'a> {
-    weight: T,
-    endpoints: (&'a Node<'a>, &'a Node<'a>),
-}
+// #[derive(Debug)]
+// struct Edge<'a, T: 'a> {
+//    weight: T,
+//    endpoints: (NodeRef<'a>, NodeRef<'a>),
+// }
 
 // a collection of nodes and edges
-struct Graph<'a, T: 'a> {
-    nodes: Vec<Node<'a>>,
-    edges: Vec<Edge<'a, T>>,
+#[derive(Debug)]
+struct Graph<'a> {
+    nodes: Vec<NodeRef<'a>>, // edges: Vec<Edge<'a, T>>,
 }
 
-//
-impl<'a, T> Graph<'a, T> {
-    // add a node
-    pub fn add_node(&'a mut self) {
-        self.nodes.push(Node {
-            neighbors: vec![]
-        });
+impl<'a> Graph<'a> {
+    pub fn new() -> Graph<'a> {
+        Graph {
+            nodes: vec![],
+            //edges: vec![],
+        }
     }
 
-    pub fn add_edge(&'a mut self, weight: T, endpoints: (usize, usize)) {
-        // destructure endpoints
-        let (s, e) = endpoints;
+    // add a new empty node with the specified data
+    pub fn add_node(&mut self, datum: &'a str) {
+        self.nodes.push(Node::new(datum));
+    }
 
-        // add the edge
-        self.edges.push(Edge {
-            weight: weight,
-            endpoints: (&self.nodes[s], &self.nodes[e], )
-        });
+    // add an edge between two specified nodes
+    pub fn add_edge(&mut self, start: usize, end: usize) {
+        let mut mut_start = self.nodes[start].borrow_mut();
+        mut_start.add_adjacent(&self.nodes[end]);
+        let mut mut_end = self.nodes[end].borrow_mut();
+        mut_end.add_adjacent(&self.nodes[start]);
+    }
+}
 
-        // update the neighbor lists for the two end nodes
-        self.nodes[s].add_neighbor(&self.nodes[e]);
+// cannot rely on derive macro for cyclic data structures, because displaying the adjacent nodes
+// causes a stack overflow
+impl<'a> fmt::Debug for Node<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let edge_names = self.adjacent.iter().map(|x| x.borrow_mut().name).collect::<Vec<&str>>();
+        write!(f,
+               "Node {{ name: {}, adjacent: {:?} }}",
+               self.name,
+               edge_names)
     }
 }
