@@ -6,12 +6,17 @@ use std::fmt;
 fn main() {
     // initialise a dummy graph
     let mut graph = Graph::new();
-    graph.add_node("a");
-    graph.add_node("b");
-    graph.add_edge(0, 1);
-    graph.add_node("c");
-    graph.add_node("d");
-    graph.add_edge(2, 3);
+
+    // define some nodes
+    let a: usize = graph.add_node("a");
+    let b = graph.add_node("b");
+    let c = graph.add_node("c");
+    let d = graph.add_node("d");
+
+    // add some edges
+    graph.add_edge(a, b);
+    graph.add_edge(c, d);
+    graph.add_edge(d, a);
 
     // print it
     println!("{:?}", graph);
@@ -62,17 +67,16 @@ impl<'a> Graph<'a> {
         }
     }
 
-    // add a new empty node with the specified data
-    pub fn add_node(&mut self, datum: &'a str) {
+    // add a new empty node with the specified data, returning the node index
+    pub fn add_node(&mut self, datum: &'a str) -> usize {
         self.nodes.push(Node::new(datum));
+        self.nodes.len() - 1
     }
 
     // add an edge between two specified nodes
     pub fn add_edge(&mut self, start: usize, end: usize) {
-        let mut mut_start = self.nodes[start].borrow_mut();
-        mut_start.add_adjacent(&self.nodes[end]);
-        let mut mut_end = self.nodes[end].borrow_mut();
-        mut_end.add_adjacent(&self.nodes[start]);
+        (self.nodes[start].borrow_mut()).add_adjacent(&self.nodes[end]);
+        (self.nodes[end].borrow_mut()).add_adjacent(&self.nodes[start]);
     }
 }
 
